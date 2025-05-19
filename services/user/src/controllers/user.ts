@@ -2,6 +2,11 @@ import User from "../models/User";
 import jwt from "jsonwebtoken";
 import requestHandler from "../utils/requestHandler";
 import { AuthenticatedRequest } from "../middleware/isAuth";
+import getBuffer from "../utils/dataUri";
+import { v2 as cloudinary } from 'cloudinary';
+import { Types } from "mongoose";
+
+
 
 export const loginUser = requestHandler(async (req, res) => {
   const { email, name, image } = req.body;
@@ -74,4 +79,54 @@ export const updateUser = requestHandler(async (req, res) => {
     user: user,
     token:token
   });
+});
+
+
+export const updateProfilePicture  = requestHandler(async (req, res) => {
+    const file = req.file;
+    const id = req.params.id;
+
+    if (!file) {
+      res.status(400).json({ message: "No file Chosen" });
+      return;
+    }
+
+    const fileBuffer =  getBuffer(file);
+    if (!fileBuffer || !fileBuffer.content) {
+      res.status(400).json({ message: "Failed to  getting buffer" });
+      return;
+    }
+
+
+    const cloud = await cloudinary.uploader.upload(fileBuffer.content, {
+      folder: "blogs"
+    });
+
+    const updateUserProfile = await User.findByIdAndUpdate(
+        {_id : new Types.ObjectId(id)},
+      {
+        image: cloud.secure_url,
+      },
+      { new: true }
+    );
+
+
+    if (!updateUserProfile) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const token = jwt.sign(
+    { _id: updateUserProfile._id, email: updateUserProfile.email }, 
+    process.env.JWT_SECRET as string,
+    { expiresIn: "5d" }
+    );
+
+    res.status(200).json({
+      message: "Profile picture updated successfully",
+      user: updateUserProfile,
+      token:token
+    });
+    return;
+
 });

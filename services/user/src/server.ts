@@ -3,11 +3,15 @@ import express from "express";
 import connectToDB from "./utils/db";
 import userRoutes from "./routes/user";
 import cors from "cors";
+import { connectToCloudinaryDB } from "./utils/coudinaryDB";
+
 dotenv.config();
+
 
 
 const app = express();
 connectToDB()
+connectToCloudinaryDB()
 
 app.use(express.json());
 app.use(cors())
