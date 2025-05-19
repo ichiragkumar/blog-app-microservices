@@ -19,9 +19,9 @@ export const loginUser = requestHandler(async (req, res) => {
   );
 
   res.status(201).json({
-    token : token,
+    message : "User created successfully",
     user: newUser,
-    message : "User created successfully"
+    token:token
   });
 
 });
@@ -30,10 +30,48 @@ export const myProfile = requestHandler(
   async (req: AuthenticatedRequest, res) => {
     const user = req.user;
     if (!user) {
-      console.log("i am here");
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
     res.status(200).json(user);
   }
 );
+
+export const getUserProfile = requestHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+  res.status(200).json({
+    user
+  });
+});
+
+
+export const updateUser = requestHandler(async (req, res) => {
+   const { name , instagram, facebook, linkedin, bio } = req.body;
+   const user = await User.findById(req.params.id);
+   if (!user) {
+     res.status(404).json({ message: "User not found" });
+     return;
+   }
+   user.name = name;
+   user.instagram = instagram;
+   user.facebook = facebook;
+   user.linkedin = linkedin;
+   user.bio = bio;
+   await user.save();
+
+    const token = jwt.sign(
+    { _id: user._id, email: user.email }, 
+    process.env.JWT_SECRET as string,
+    { expiresIn: "5d" }
+  );
+
+  res.status(201).json({
+    message : "User update successfully",
+    user: user,
+    token:token
+  });
+});
